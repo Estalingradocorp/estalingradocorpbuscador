@@ -14,6 +14,18 @@ Estalingrado Corp Intranet PRO es una interfaz de búsqueda y dashboard profesio
 
 ---
 
+## Capturas
+
+**1.** ![Captura 1](assets/screenshots/01.png)
+
+**2.** ![Captura 2](assets/screenshots/02.png)
+
+**3.** ![Captura 3](assets/screenshots/03.png)
+
+**4.** ![Captura 4](assets/screenshots/04.png)
+
+---
+
 ## Características Principales
 
 ### Búsqueda Multimotor
@@ -159,9 +171,9 @@ Estalingrado-corp-Buscador-/
 ├── style.css           # Todos los estilos (estética Aurora Cyber)
 ├── app.js              # Toda la lógica (búsqueda, APIs, widgets)
 ├── assets/
-│   └── logo.jpg        # Logo local (sin dependencia de CDN externo)
-├── README.md           # Documentación
-└── CNAME               # Subdominio de GitHub Pages
+│   ├── logo.jpg        # Logo local (sin dependencia de CDN externo)
+│   └── screenshots/    # Capturas numeradas (01.png - 04.png)
+└── README.md           # Documentación
 ```
 
 ---
