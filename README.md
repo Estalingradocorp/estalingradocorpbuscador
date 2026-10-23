@@ -48,6 +48,19 @@ Consulta simultánea a 18 motores de búsqueda:
 - **Web** - Búsqueda estándar multimotor
 - **Imágenes** - Búsqueda visual multisource
 - **IA** - Acceso directo a ChatGPT, Gemini, Perplexity, DeepSeek, Claude, Copilot
+- **Seguridad** - Auditoría de exposición con Shodan (ver abajo)
+
+### Modo Seguridad (Shodan)
+Herramienta de auditoría de exposición: descubre qué servicios tiene públicos una IP o busca dispositivos conectados a Internet (cámaras IP, RTSP, VNC, Telnet, FTP, etc.).
+
+- El usuario pega su API key de Shodan (gratuita en https://account.shodan.io/)
+- La key se guarda solo en `localStorage` del navegador y se envía únicamente a `api.shodan.io`
+- Si la query es una IP → `/shodan/host/{ip}` (gratis, sin créditos)
+- Si es texto → `/shodan/host/count` gratis para totales + botón explícito para `/shodan/host/search` (1 crédito)
+- Plan gratuito: 100 consultas/mes
+- Solo muestra metadatos públicos: IP, puertos, banners, org, ubicación, CVEs. Sin screenshots ni streams
+
+Queries rápidas incluidas: `webcam`, `product:"webcamxp"`, `title:"IP Camera"`, `port:554` (RTSP), `netcam`, `port:5800` (VNC), `port:23` (Telnet), `port:21` (FTP).
 
 ### Herramientas de Privacidad
 | Herramienta | Descripción |
@@ -141,7 +154,11 @@ npx serve .
 
 ```
 Estalingrado-corp-Buscador-/
-├── index.html          # Archivo principal (todo en uno: HTML, CSS y JS)
+├── index.html          # Marcado HTML (head, layout, modales)
+├── style.css           # Todos los estilos (estética Aurora Cyber)
+├── app.js              # Toda la lógica (búsqueda, APIs, widgets)
+├── assets/
+│   └── logo.jpg        # Logo local (sin dependencia de CDN externo)
 ├── README.md           # Documentación
 └── CNAME               # Subdominio de GitHub Pages
 ```
@@ -177,7 +194,7 @@ Añade entradas a `CONFIG.knownSites`:
 }
 ```
 
-Los accesos del menú desplegable se editan directamente en el HTML, dentro de `#menuPanel` (aproximadamente línea 735). Cada sección usa `<strong>` como encabezado y los enlaces son `<a href="..."><i class="..."></i> Texto</a>`. Para que un enlace abra en la misma pestaña, no incluyas `target="_blank"`.
+Los accesos del menú desplegable se editan directamente en `index.html`, dentro de `#menuPanel`. Cada sección usa `<strong>` como encabezado y los enlaces son `<a href="..."><i class="..."></i> Texto</a>`. Para que un enlace abra en la misma pestaña, no incluyas `target="_blank"`.
 
 ---
 
