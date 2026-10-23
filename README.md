@@ -85,7 +85,8 @@ El menú desplegable del header organiza los accesos en tres secciones:
 | | ECnews | Misma pestaña |
 | **Administrativo** | Big-Data | Misma pestaña |
 | | Página de la Empresa | Misma pestaña |
-| **Soporte** | Ayuda Comandos | Modal interno |
+| **Soporte** | Soporte | Misma pestaña (`https://estalingradocorp.qzz.io/`) |
+| | Ayuda Comandos | Modal interno |
 | | Privacidad | Modal interno |
 
 #### Enlaces actuales
