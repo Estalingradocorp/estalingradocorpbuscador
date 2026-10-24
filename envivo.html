@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>En Vivo Ahora | Estalingrado Corp</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .live-page-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;padding:8px 0}
+    .live-page .live-card{min-height:460px}
+    .live-page .live-wrap{height:260px}
+    .return-bar{max-width:1200px;margin:0 auto 12px;padding:0 16px;display:flex;gap:10px;align-items:center}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="js/live-player.js" defer></script>
+  <script src="js/live-strip.js" defer></script>
+</head>
+<body>
+  <div class="return-bar">
+    <a href="index.html" class="btn" style="padding:8px 14px;font-size:13px;background:#161b22;border-color:#30363d;"><i class="fas fa-arrow-left"></i> Volver al Buscador</a>
+    <h1 style="margin:0;font-size:17px;font-weight:900;letter-spacing:.3px;color:var(--secondary,#58a6ff);flex:1;"><i class="fas fa-broadcast-tower"></i> En Vivo Ahora</h1>
+    <a href="#" onclick="location.reload()" class="btn" style="padding:8px 14px;font-size:13px;background:#161b22;border-color:#30363d;"><i class="fas fa-sync"></i> Recargar</a>
+  </div>
+
+  <main style="max-width:1200px;margin:24px auto;padding:0 16px;">
+    <p style="color:var(--text-muted,#8b949e);font-size:13px;margin-bottom:12px;">Grid completo de transmisiones en vivo · HLS nativo y YouTube · autoplay muteado · pausa automática al salir de pantalla.</p>
+    <div class="live-page-grid" id="live-grid"></div>
+  </main>
+</body>
+</html>
