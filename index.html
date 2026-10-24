@@ -149,6 +149,15 @@
           </div>
         </div>
 
+        <!-- EN VIVO AHORA -->
+        <div class="live-banner">
+          <div class="live-head">
+            <h3><i class="fas fa-broadcast-tower"></i> En Vivo Ahora</h3>
+            <p class="live-sub">Tres transmisiones en vivo: tarjetas horizontales, HLS nativo y YouTube.</p>
+          </div>
+          <div class="live-strip" id="live-strip"></div>
+        </div>
+
         <!-- Prensa Escrita Latinoamericana -->
         <div class="written-press-container">
           <h3><i class="fas fa-globe-americas" style="color:var(--secondary);"></i> Prensa Escrita Internacional y LATAM</h3>
@@ -224,6 +233,9 @@
     </footer>
   </div>
 
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script src="js/live-player.js" defer></script>
+<script src="js/live-strip.js" defer></script>
 <script src="app.js" defer></script>
 </body>
 </html>
