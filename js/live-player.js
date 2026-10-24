@@ -1,143 +1,242 @@
-/* LivePlayer — reproductor de transmisiones en vivo (HLS nativo + hls.js y YouTube iframe).
-   Autoplay muteado por defecto; clic en tarjeta = play/pause; botones de sonido/pausa.
-   Compartido por el banner de index.html y envivo.html. */
-(function () {
-  const HLS_CDN = 'https://cdn.jsdelivr.net/npm/hls.js@latest';
+/* ============================================================
+   ESTALINGRADO BUSCADOR · LIVE PLAYER (compartido)
+   Lógica de reproducción de transmisiones en vivo, usada por:
+   - index.html   (js/live-strip.js)  → franja destacada
+   - envivo.html  (js/envivo.js)      → grid completo
+   Depende de LIVE_CONFIG y liveTargetUrl (js/live-data.js).
 
-  function loadScript(src) {
-    return new Promise((resolve, reject) => {
-      if (document.querySelector('script[src="' + src + '"]')) return resolve();
-      const s = document.createElement('script');
-      s.src = src;
-      s.onload = resolve;
-      s.onerror = reject;
-      document.head.appendChild(s);
+   Fuente principal: stream HLS directo (.m3u8) con CORS abierto.
+   Respaldo: embed de YouTube + autoreparación vía iptv-org.
+   ============================================================ */
+
+const HLS_JS_URL = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js';
+
+let hlsLibPromise = null;
+
+const loadHlsLib = () => {
+    if (hlsLibPromise) return hlsLibPromise;
+    hlsLibPromise = new Promise((resolve, reject) => {
+        if (window.Hls) return resolve(window.Hls);
+        const script = document.createElement('script');
+        script.src = HLS_JS_URL;
+        script.onload = () => (window.Hls ? resolve(window.Hls) : reject(new Error('Hls no disponible')));
+        script.onerror = () => reject(new Error('No se pudo cargar hls.js'));
+        document.head.appendChild(script);
     });
-  }
+    return hlsLibPromise;
+};
 
-  function esc(t) {
-    return String(t == null ? '' : t)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-  function escAttr(t) {
-    return esc(t).replace(/'/g, '&#39;');
-  }
+// Auto-reparación mediante índice de iptv-org
+const IPTV_INDEX_URL = 'https://iptv-org.github.io/api/streams.json';
+const IPTV_CACHE_KEY = 'estalingrado-iptv-streams';
+const IPTV_TTL = 6 * 60 * 60 * 1000;
 
-  window.LivePlayer = class LivePlayer {
-    constructor(el, cfg) {
-      this.el = el;
-      this.id = cfg.id;
-      this.title = cfg.title;
-      this.source = cfg.source;
-      this.type = cfg.type || 'hls';
-      this.goUrl = cfg.goUrl || '#';
-      this.youtube = cfg.youtube || '#';
-      this.desc = cfg.desc || '';
-      this.paused = false;
-      this.muted = true;
-      this.started = false;
-      this.hls = null;
-      this.video = null;
-      this.iframe = null;
-      this.render();
-      this.bind();
-      this.boot();
-    }
+const wantedChannelIds = () => {
+    const ids = new Set();
+    if (typeof LIVE_CONFIG === 'undefined') return ids;
+    [...LIVE_CONFIG.es, ...LIVE_CONFIG.en].forEach(ch => { if (ch.channel) ids.add(ch.channel); });
+    return ids;
+};
 
-    render() {
-      const isHLS = this.type === 'hls';
-      this.el.className = 'live-card';
-      this.el.innerHTML =
-        '<div class="live-wrap">' +
-        '<span class="live-badge"><span class="dot"></span>EN VIVO</span>' +
-        (isHLS ? '<span class="type-badge">HLS</span>' : '') +
-        '<div class="live-media" id="live-media-' + this.id + '">' +
-        (isHLS
-          ? '<video class="live-video" muted playsinline autoplay></video>'
-          : '<iframe class="live-iframe" src="' + escAttr(this.source) +
-            '" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>') +
-        '<div class="live-overlay" id="live-overlay-' + this.id + '">' +
-        '<div class="live-play-hint"><i class="fas fa-play"></i></div>' +
-        '</div>' +
-        '</div>' +
-        '<div class="live-ctrl">' +
-        '<button class="live-btn live-sound" title="Activar/desactivar sonido" aria-label="Sonido">🔇</button>' +
-        '<button class="live-btn live-pause" title="Pausar/reanudar" aria-label="Pausa">⏸</button>' +
-        '</div>' +
-        '</div>' +
-        '<div class="live-body">' +
-        '<div class="live-head"><strong class="live-title">' + esc(this.title) +
-        '</strong> <a class="go-live" href="' + escAttr(this.goUrl) +
-        '" target="_blank" rel="noopener">IR →</a></div>' +
-        '<div class="live-desc">' + esc(this.desc) + '</div>' +
-        '<a class="yt-link" href="' + escAttr(this.youtube) + '" target="_blank" rel="noopener">Ver en YouTube</a>' +
-        '</div>';
-      this.video = this.el.querySelector('.live-video');
-      this.iframe = this.el.querySelector('.live-iframe');
-      this.overlay = this.el.querySelector('.live-overlay');
-    }
-
-    bind() {
-      const self = this;
-      this.overlay.addEventListener('click', () => self.togglePlay());
-      this.el.querySelector('.live-sound').addEventListener('click', (e) => { e.stopPropagation(); self.toggleMute(); });
-      this.el.querySelector('.live-pause').addEventListener('click', (e) => { e.stopPropagation(); self.togglePause(); });
-    }
-
-    async boot() {
-      if (this.type === 'hls') {
-        if (!window.Hls) await loadScript(HLS_CDN);
-        this.hls = new window.Hls({
-          enableWorker: true,
-          backBufferLength: 0,
-          startLevel: -1,
-          autoStartLoad: true,
-          capLevelToPlayerSize: false
+const fetchIptvIndex = async () => {
+    const wanted = wantedChannelIds();
+    try {
+        const cached = JSON.parse(sessionStorage.getItem(IPTV_CACHE_KEY));
+        if (cached && Date.now() - cached.ts < IPTV_TTL) return cached.map;
+    } catch (e) { /* sin almacenamiento */ }
+    try {
+        const res = await fetch(IPTV_INDEX_URL);
+        if (!res.ok) return null;
+        const data = await res.json();
+        const map = {};
+        data.forEach(s => {
+            if (wanted.has(s.channel) && s.url && /\.m3u8(\?|$)/i.test(s.url)) {
+                if (!map[s.channel]) map[s.channel] = [];
+                map[s.channel].push(s.url);
+            }
         });
-        this.hls.attachMedia(this.video);
-        this.hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
-          this.started = true;
-          this.syncUI();
-          this.video.play().catch(() => {});
-        });
-        this.hls.on(window.Hls.Events.ERROR, () => {
-          setTimeout(() => { try { this.hls.startLoad(); } catch (e) { } }, 3000);
-        });
-        this.hls.loadSource(this.source);
-      } else {
-        this.started = true;
-        this.syncUI();
-      }
-      try { if (this.video) this.video.play().catch(() => {}); } catch (e) { }
+        try { sessionStorage.setItem(IPTV_CACHE_KEY, JSON.stringify({ ts: Date.now(), map })); } catch (e) { }
+        return map;
+    } catch (e) { return null; }
+};
+
+const repairStreamUrl = async (ch) => {
+    if (!ch || !ch.channel) return null;
+    const map = await fetchIptvIndex();
+    if (!map || !map[ch.channel] || !map[ch.channel].length) return null;
+    const candidates = map[ch.channel];
+    return candidates.find(u => u !== ch.hls) || candidates[0];
+};
+
+// Escenas de error
+const showStageError = (stage, ch, message) => {
+    stage.innerHTML = `
+        <div class="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center bg-black/80">
+            <i class="fas fa-warning text-3xl text-amber-400"></i>
+            <p class="text-xs sm:text-sm font-medium text-slate-300">${message}</p>
+            <a href="${liveTargetUrl(ch)}" target="_blank" rel="noopener noreferrer"
+               class="inline-flex items-center text-[10px] font-bold uppercase tracking-widest text-blue-400 hover:underline">
+                Ver en YouTube <i class="fas fa-arrow-up-right ml-1"></i>
+            </a>
+        </div>`;
+};
+
+const appendLiveBadge = (stage, ch) => {
+    const badge = document.createElement('span');
+    badge.className = 'live-badge absolute top-2 left-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600/90 text-white text-[8px] font-bold uppercase tracking-widest shadow-lg backdrop-blur-sm';
+    badge.innerHTML = '<span class="live-dot"></span> En Vivo';
+    stage.appendChild(badge);
+};
+
+// Controles de reproducción
+const setStageControlIcon = (stage, playing) => {
+    const btn = stage.querySelector('.live-control-btn');
+    if (!btn) return;
+    btn.innerHTML = playing ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
+};
+
+const toggleStagePlayback = (stage) => {
+    const video = stage.querySelector('video');
+    if (video) {
+        if (video.paused) {
+            video.play().catch(() => { });
+            setStageControlIcon(stage, true);
+            stage.dataset.playing = '1';
+            stage.dataset.userPaused = '0';
+            return true;
+        }
+        video.pause();
+        setStageControlIcon(stage, false);
+        stage.dataset.playing = '0';
+        stage.dataset.userPaused = '1';
+        return false;
+    }
+    const frame = stage.querySelector('iframe');
+    if (frame) {
+        const playing = frame.dataset.playing === '1';
+        try {
+            const url = new URL(frame.src);
+            url.searchParams.set('autoplay', playing ? '0' : '1');
+            frame.dataset.playing = playing ? '0' : '1';
+            frame.src = url.toString();
+        } catch (e) { }
+        setStageControlIcon(stage, !playing);
+        stage.dataset.playing = playing ? '0' : '1';
+        stage.dataset.userPaused = playing ? '1' : '0';
+        return !playing;
+    }
+    return false;
+};
+
+const appendStageControl = (stage) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'live-control-btn absolute bottom-2 right-2 z-20 h-6 w-6 rounded-full bg-black/60 text-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-black/90 transition-colors';
+    btn.setAttribute('aria-label', 'Pausar o reanudar la transmisión');
+    btn.innerHTML = '<i class="fas fa-pause"></i>';
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleStagePlayback(stage);
+    });
+    stage.appendChild(btn);
+};
+
+const appendStageAudio = (stage) => {
+    const video = stage.querySelector('video');
+    if (!video) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'live-audio-btn absolute bottom-2 right-10 z-20 h-6 w-6 rounded-full bg-black/60 text-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-black/90 transition-colors';
+    btn.setAttribute('aria-label', 'Activar o silenciar el sonido');
+    btn.innerHTML = `<i class="fas ${video.muted ? 'fa-volume-mute' : 'fa-volume-up'}"></i>`;
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        video.muted = !video.muted;
+        btn.innerHTML = `<i class="fas ${video.muted ? 'fa-volume-mute' : 'fa-volume-up'}"></i>`;
+    });
+    stage.appendChild(btn);
+};
+
+const mountHlsPlayer = async (stage, ch, url, opts = {}) => {
+    stage.innerHTML = '';
+    let hlsInstance = null;
+
+    const video = document.createElement('video');
+    video.className = 'absolute inset-0 w-full h-full bg-black';
+    video.controls = opts.controls !== false;
+    video.playsInline = true;
+    video.autoplay = true;
+    video.muted = true;
+    video.setAttribute('playsinline', '');
+    stage.appendChild(video);
+    appendLiveBadge(stage, ch);
+    appendStageControl(stage);
+    if (opts.controls === false) appendStageAudio(stage);
+    setStageControlIcon(stage, true);
+
+    const onFatal = async () => {
+        try { if (hlsInstance) hlsInstance.destroy(); } catch (e) { }
+        const repaired = await repairStreamUrl(ch);
+        if (repaired && repaired !== url) {
+            mountHlsPlayer(stage, ch, repaired, opts);
+            return;
+        }
+        showStageError(stage, ch, 'La señal no está disponible en este momento');
+    };
+
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = url;
+    } else {
+        let Hls;
+        try {
+            Hls = await loadHlsLib();
+        } catch (e) {
+            showStageError(stage, ch, 'No se pudo cargar el reproductor');
+            return;
+        }
+        if (!Hls.isSupported()) {
+            video.src = url;
+        } else {
+            hlsInstance = new Hls({
+                maxBufferLength: 20,
+                enableWorker: true,
+                startLevel: 0,
+                capLevelToPlayerSize: true,
+                abrEwmaDefaultEstimate: 500000
+            });
+            hlsInstance.on(Hls.Events.ERROR, (_evt, data) => {
+                if (data && data.fatal) onFatal();
+            });
+            hlsInstance.loadSource(url);
+            hlsInstance.attachMedia(video);
+        }
     }
 
-    play() {
-      this.paused = false;
-      if (this.video) this.video.play().catch(() => {});
-      this.syncUI();
+    video.addEventListener('error', () => {
+        if (video.networkState === video.NETWORK_NO_SOURCE) onFatal();
+    });
+};
+
+const mountYouTubePlayer = (stage, ch) => {
+    const embed = `https://www.youtube.com/embed/${ch.youtube}?autoplay=1&mute=1&playsinline=1`;
+    stage.innerHTML = `
+        <iframe src="${embed}" title="${ch.name}" loading="lazy"
+                class="absolute inset-0 w-full h-full bg-black"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen frameborder="0"></iframe>`;
+    const frame = stage.querySelector('iframe');
+    if (frame) frame.dataset.playing = '1';
+    appendLiveBadge(stage, ch);
+    appendStageControl(stage);
+    setStageControlIcon(stage, true);
+};
+
+const startPlayback = (stage, ch, opts = {}) => {
+    const poster = stage.querySelector('.live-poster');
+    if (poster) poster.remove();
+    if (ch.hls) {
+        mountHlsPlayer(stage, ch, ch.hls, opts);
+    } else {
+        mountYouTubePlayer(stage, ch);
     }
-    pause() {
-      this.paused = true;
-      if (this.video) this.video.pause();
-      else if (this.iframe) {
-        const src = this.iframe.src.replace(/[?&]autoplay=1/, '');
-        this.iframe.src = src;
-      }
-      this.syncUI();
-    }
-    togglePlay() { if (this.paused || !this.started) this.play(); else this.pause(); }
-    toggleMute() { this.muted = !this.muted; if (this.video) this.video.muted = this.muted; this.syncUI(); }
-    togglePause() { if (this.paused) this.play(); else this.pause(); }
-    syncUI() {
-      const cls = this.paused ? 'paused' : 'playing';
-      this.el.classList.remove('playing', 'paused');
-      this.el.classList.add(cls);
-      const btn = this.el.querySelector('.live-pause');
-      btn.textContent = this.paused ? '▶' : '⏸';
-      btn.title = this.paused ? 'Reanudar' : 'Pausar';
-      const snd = this.el.querySelector('.live-sound');
-      snd.textContent = this.muted ? '🔇' : '🔊';
-    }
-  };
-})();
+};
