@@ -79,7 +79,7 @@
         <a href="https://estalingradocorp.github.io/EstalingradoCorp/"><i class="fas fa-globe"></i> Página de la Empresa</a>
         <strong>Soporte</strong>
         <a href="https://estalingradocorp.qzz.io/"><i class="fas fa-headset"></i> Soporte</a>
-        <a href="#" onclick="window.toggleHelp(); return false;"><i class="fas fa-info-circle"></i> Ayuda Comandos</a>
+        <a href="#" onclick="window.toggleHelp(); return false;"><i class="fas fa-info-circle"></i> Guía de Uso</a>
         <a href="#" onclick="window.mostrarPoliticaPrivacidad(); return false;"><i class="fas fa-shield-alt"></i> Privacidad</a>
       </div>
     </header>
@@ -106,6 +106,7 @@
           <button type="button" class="search-tab" id="tab-images" onclick="window.setSearchMode('images')"><i class="fas fa-images"></i> Imágenes</button>
           <button type="button" class="search-tab" id="tab-ai" onclick="window.setSearchMode('ai')"><i class="fas fa-brain"></i> IA</button>
           <button type="button" class="search-tab" id="tab-security" onclick="window.setSearchMode('security')"><i class="fas fa-shield-halved"></i> Seguridad</button>
+          <button type="button" class="search-tab" id="tab-osint" onclick="window.setSearchMode('osint')"><i class="fas fa-user-secret"></i> OSINT</button>
           <button type="button" class="search-tab" onclick="window.toggleDashboardView()"><i class="fas fa-newspaper"></i> ECNews</button>
         </div>
 
@@ -184,23 +185,131 @@
     </div>
 
     <div id="help-modal" class="modal-overlay">
-      <div class="modal-content-wrapper">
+      <div class="modal-content-wrapper help-content-wrapper">
         <button class="close-modal" onclick="window.toggleHelp()">×</button>
-        <h2>Guía de Uso</h2>
-        <p>
-          <strong>Comandos Rápidos Integrados:</strong><br>
-          - Escribe <code>/ai [pregunta]</code> para simular consultas inteligentes.<br>
-          - Escribe <code>clima en [ciudad]</code> para obtener reportes meteorológicos reales.<br>
-          - Escribe <code>/traducir [texto]</code> para traducciones rápidas.<br><br>
-          
-          <strong>Integración de APIs (Automático):</strong><br>
-          Al buscar términos generales, el sistema consultará en segundo plano bases de datos como Wikipedia, OpenStreetMap, CoinGecko (Crypto), PokeAPI, iTunes y GitHub, mostrando tarjetas enriquecidas antes de los resultados externos.<br><br>
-          
-          <strong>Atajos de Teclado:</strong><br>
-          - <code>Ctrl + K</code>: Enfocar barra de búsqueda<br>
-          - <code>Ctrl + D</code>: Abrir/Cerrar Dashboard<br>
-          - <code>Esc</code>: Cerrar menús o detener dictado por voz<br>
-        </p>
+        <h2><i class="fas fa-book-open" style="color:var(--primary);"></i> Guía de Uso</h2>
+        <p class="help-lead">Todo se ejecuta en tu navegador. Elegí una pestaña, escribí la consulta y presioná <span class="help-kbd">Enter</span>. Los ejemplos del final son clicables.</p>
+
+        <h3 class="help-section"><i class="fas fa-layer-group"></i> 1. Elegí el modo correcto</h3>
+        <div class="help-modes">
+          <div class="help-mode">
+            <strong><i class="fas fa-globe"></i> Web</strong>
+            <span>Busca en los motores activos y agrega tarjetas inteligentes.</span>
+            <code>inteligencia artificial</code>
+          </div>
+          <div class="help-mode">
+            <strong><i class="fas fa-images"></i> Imágenes</strong>
+            <span>Abre la consulta en Google, Bing, Yandex, DuckDuckGo y Pinterest.</span>
+            <code>paisajes de montaña</code>
+          </div>
+          <div class="help-mode">
+            <strong><i class="fas fa-brain"></i> IA</strong>
+            <span>Lleva tu pregunta a ChatGPT, Gemini, Perplexity, Claude o DeepSeek.</span>
+            <code>explicá blockchain</code>
+          </div>
+          <div class="help-mode">
+            <strong><i class="fas fa-shield-halved"></i> Seguridad</strong>
+            <span>Shodan: puertos y servicios expuestos de una IP o dispositivo. Requiere API key gratuita.</span>
+            <code>8.8.8.8</code>
+          </div>
+          <div class="help-mode">
+            <strong><i class="fas fa-user-secret"></i> OSINT</strong>
+            <span>Analiza datos públicos sin API keys: IP, dominio, email, usuario, hash, URL o teléfono.</span>
+            <code>example.com</code>
+          </div>
+          <div class="help-mode">
+            <strong><i class="fas fa-newspaper"></i> ECNews</strong>
+            <span>Dashboard de noticias, clima y prensa LATAM.</span>
+            <span>Se abre con el botón ECNews de las pestañas.</span>
+          </div>
+        </div>
+
+        <h3 class="help-section"><i class="fas fa-user-secret"></i> 2. OSINT: qué podés escribir</h3>
+        <div class="help-table-wrap">
+          <table class="help-table">
+            <thead>
+              <tr><th>Escribí</th><th>Se detecta</th><th>Qué vas a ver</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>8.8.8.8</code></td><td>IP</td><td>Geolocalización, ASN, puertos y CVEs observados</td></tr>
+              <tr><td><code>example.com</code></td><td>Dominio</td><td>DNS, whois/RDAP, subdominios e histórico</td></tr>
+              <tr><td><code>ana@example.com</code></td><td>Email</td><td>Gravatar (solo hash), MX, SPF y DMARC</td></tr>
+              <tr><td><code>torvalds</code> o <code>@torvalds</code></td><td>Usuario</td><td>GitHub y enlaces a 12 plataformas</td></tr>
+              <tr><td><code>d41d8cd98f00b204e9800998ecf8427e</code></td><td>Hash</td><td>Algoritmo y enlaces a VirusTotal, Triage, etc.</td></tr>
+              <tr><td><code>https://example.com/ruta</code></td><td>URL</td><td>Componentes, dominio subyacente e histórico</td></tr>
+              <tr><td><code>+54 9 11 5555-1234</code></td><td>Teléfono</td><td>Dígitos normalizados y búsqueda inversa externa</td></tr>
+              <tr><td>otra frase</td><td>Consulta libre</td><td>Google Dorks y directorio de herramientas</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="help-note"><i class="fas fa-scale-balanced"></i> El modo OSINT solo consulta fuentes públicas y datos pasivos. No escanea puertos, no prueba credenciales y no accede a sistemas. Cada tarjeta indica la fuente; los enlaces del directorio abren servicios de terceros.</p>
+
+        <h3 class="help-section"><i class="fas fa-terminal"></i> 3. Comandos con barra</h3>
+        <div class="help-table-wrap">
+          <table class="help-table">
+            <tbody>
+              <tr><td><code>/ai [pregunta]</code></td><td>Respuesta simulada local. Para IA real usá la pestaña <strong>IA</strong>.</td></tr>
+              <tr><td><code>/clima [ciudad]</code></td><td>Clima real con Open-Meteo. También funciona <code>clima en [ciudad]</code>.</td></tr>
+              <tr><td><code>/traducir [texto]</code></td><td>Traducción simulada local: no envía el texto a ningún servicio.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="help-note">Escribí el comando con un espacio antes del dato: <code>/clima Madrid</code> o <code>/clima Buenos Aires</code>.</p>
+
+        <h3 class="help-section"><i class="fas fa-wand-magic-sparkles"></i> 4. Palabras que activan tarjetas (modo Web)</h3>
+        <div class="help-table-wrap">
+          <table class="help-table">
+            <thead>
+              <tr><th>Escribí</th><th>Tarjeta</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>/clima Madrid</code> · <code>clima en Madrid</code></td><td>Clima actual</td></tr>
+              <tr><td><code>precio bitcoin</code> · <code>acciones apple</code></td><td>Mercados y cripto</td></tr>
+              <tr><td><code>github torvalds</code></td><td>Perfil de GitHub</td></tr>
+              <tr><td><code>pokemon pikachu</code></td><td>Pokédex</td></tr>
+              <tr><td><code>definir entropía</code> · <code>significado de sesgo</code></td><td>Diccionario</td></tr>
+              <tr><td><code>pais Japón</code></td><td>Ficha del país</td></tr>
+              <tr><td><code>receta paella</code></td><td>Receta</td></tr>
+              <tr><td><code>noticias inteligencia artificial</code></td><td>Noticias tech</td></tr>
+              <tr><td><code>libro Cien años de soledad</code></td><td>Libros</td></tr>
+              <tr><td><code>serie Dark</code> · <code>canción Bohemian Rhapsody</code></td><td>TV / música</td></tr>
+              <tr><td><code>spacex</code></td><td>Último lanzamiento</td></tr>
+              <tr><td><code>perro</code></td><td>Foto aleatoria</td></tr>
+              <tr><td><code>archivo historia de internet</code></td><td>Internet Archive</td></tr>
+              <tr><td><code>imagen de gatos</code></td><td>Búsqueda de imágenes</td></tr>
+              <tr><td>Una ciudad o país solo</td><td>Mapa + clima (OpenStreetMap)</td></tr>
+              <tr><td>Cualquier entidad corta</td><td>Wikipedia + DuckDuckGo</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 class="help-section"><i class="fas fa-keyboard"></i> 5. Atajos y ajustes</h3>
+        <div class="help-table-wrap">
+          <table class="help-table">
+            <tbody>
+              <tr><td><span class="help-kbd">Ctrl</span> + <span class="help-kbd">K</span></td><td>Enfocar la barra de búsqueda</td></tr>
+              <tr><td><span class="help-kbd">Ctrl</span> + <span class="help-kbd">D</span></td><td>Abrir o cerrar ECNews</td></tr>
+              <tr><td><span class="help-kbd">Enter</span></td><td>Buscar</td></tr>
+              <tr><td><span class="help-kbd">Esc</span></td><td>Cerrar paneles/modales o detener el dictado</td></tr>
+              <tr><td><i class="fas fa-microphone"></i> Micrófono</td><td>Dictado por voz (Chrome/Edge)</td></tr>
+              <tr><td><i class="fas fa-cog"></i> Ajustes</td><td>Activar/desactivar motores y borrar historial</td></tr>
+              <tr><td><i class="fas fa-bars"></i> Menú</td><td>Accesos a la intranet y esta guía</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 class="help-section"><i class="fas fa-play"></i> 6. Probá un ejemplo</h3>
+        <div class="help-examples">
+          <button class="help-example" onclick="window.runHelpExample('example.com','osint')"><i class="fas fa-user-secret"></i> example.com</button>
+          <button class="help-example" onclick="window.runHelpExample('8.8.8.8','osint')"><i class="fas fa-network-wired"></i> 8.8.8.8</button>
+          <button class="help-example" onclick="window.runHelpExample('torvalds','osint')"><i class="fas fa-user"></i> torvalds</button>
+          <button class="help-example" onclick="window.runHelpExample('/clima Buenos Aires')"><i class="fas fa-cloud-sun"></i> /clima Buenos Aires</button>
+          <button class="help-example" onclick="window.runHelpExample('github torvalds')"><i class="fab fa-github"></i> github torvalds</button>
+          <button class="help-example" onclick="window.runHelpExample('precio bitcoin')"><i class="fas fa-chart-line"></i> precio bitcoin</button>
+          <button class="help-example" onclick="window.runHelpExample('/ai qué es OSINT')"><i class="fas fa-brain"></i> /ai qué es OSINT</button>
+        </div>
+        <p class="help-note"><i class="fas fa-circle-info"></i> La clave de Shodan y el historial se guardan solo en tu navegador. Nada se envía a Estalingrado Corp.</p>
+        <button class="btn btn-secondary" style="margin-top:16px;" onclick="window.toggleHelp()"><i class="fas fa-times"></i> Cerrar guía</button>
       </div>
     </div>
 
@@ -214,6 +323,8 @@
         Las tarjetas enriquecidas (clima, mapas, criptomonedas, libros) realizan peticiones directas desde tu IP a servicios públicos (ej. Open-Meteo, OpenStreetMap, Open Library). Dichos servicios pueden registrar tu IP pública.</p>
         <p><strong>3. Enlaces Externos:</strong><br>
         Al hacer clic en un motor tradicional (Google, Bing, etc.), abandonas la intranet segura y te sometes a las políticas de rastreo de dicho buscador.</p>
+        <p><strong>4. Modo OSINT:</strong><br>
+        Consulta fuentes públicas directamente desde tu IP (DNS de Google, RDAP, Certificate Transparency, InternetDB de Shodan, ipwho.is, Wayback Machine y GitHub). No envía tu consulta a Estalingrado Corp. Las búsquedas de emails usan solo el hash MD5 para Gravatar: el email no se transmite. Los enlaces del directorio te llevan a servicios de terceros con sus propias políticas.</p>
       </div>
     </div>
 
@@ -224,6 +335,7 @@
     </footer>
   </div>
 
+<script src="osint.js" defer></script>
 <script src="app.js" defer></script>
 </body>
 </html>

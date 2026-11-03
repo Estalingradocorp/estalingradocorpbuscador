@@ -61,6 +61,24 @@ Consulta simultánea a 18 motores de búsqueda:
 - **Imágenes** - Búsqueda visual multisource
 - **IA** - Acceso directo a ChatGPT, Gemini, Perplexity, DeepSeek, Claude, Copilot
 - **Seguridad** - Auditoría de exposición con Shodan (ver abajo)
+- **OSINT** - Inteligencia de fuentes abiertas sin API keys (ver abajo)
+
+### Modo OSINT (Inteligencia de Fuentes Abiertas)
+Detecta automáticamente el tipo de dato y consulta fuentes públicas en paralelo, sin backend ni API keys.
+
+| Tipo detectado | Consultas automáticas |
+|----------------|----------------------|
+| IP | Geolocalización/ASN (ipwho.is), puertos, hostnames y CVEs (Shodan InternetDB) |
+| Dominio | DNS A/AAAA/MX/NS/TXT/DMARC (Google DNS), registro RDAP, subdominios por Certificate Transparency (Cert Spotter con respaldo crt.sh), histórico (Wayback Machine) |
+| Email | Avatar Gravatar (solo se envía el hash MD5), MX y SPF/DMARC del dominio |
+| Usuario | Cuenta pública de GitHub + enlaces a 12 plataformas |
+| Hash | Identificación MD5/SHA-1/SHA-256 + enlaces a VirusTotal, MalwareBazaar, Hybrid Analysis y Triage |
+| URL | Componentes de la URL, análisis del dominio subyacente e histórico Wayback |
+| Teléfono | Normalización local + enlaces de búsqueda inversa |
+
+Además genera **Google Dorks** según el tipo y un **directorio de herramientas OSINT** filtrado (Shodan, VirusTotal, AbuseIPDB, SecurityTrails, urlscan.io, HIBP, Intelligence X, OSINT Framework, Bellingcat, CyberChef, etc.).
+
+> **Ética y límites:** solo se consultan fuentes públicas y datos pasivos. No se realizan escaneos activos, fuerza bruta ni intentos de acceso. Respeta los términos de cada servicio y la privacidad de terceros. Las fuentes gratuitas tienen límites de uso.
 
 ### Modo Seguridad (Shodan)
 Herramienta de auditoría de exposición: descubre qué servicios tiene públicos una IP o busca dispositivos conectados a Internet (cámaras IP, RTSP, VNC, Telnet, FTP, etc.).
@@ -98,7 +116,7 @@ El menú desplegable del header organiza los accesos en tres secciones:
 | **Administrativo** | Big-Data | Misma pestaña |
 | | Página de la Empresa | Misma pestaña |
 | **Soporte** | Soporte | Misma pestaña (`https://estalingradocorp.qzz.io/`) |
-| | Ayuda Comandos | Modal interno |
+| | Guía de Uso | Modal interno |
 | | Privacidad | Modal interno |
 
 #### Enlaces actuales
@@ -146,20 +164,63 @@ npx serve .
 |-------|--------|
 | `Ctrl + K` | Enfocar barra de búsqueda |
 | `Ctrl + D` | Abrir/Cerrar Dashboard |
-| `Esc` | Cerrar menús / detener voz |
+| `Enter` | Ejecutar la búsqueda |
+| `Esc` | Cerrar menús/modales o detener voz |
 
 ---
 
-## Comandos Especiales
+## Guía de Uso Rápida
 
-| Comando | Descripción |
-|---------|-------------|
-| `/ai [pregunta]` | Consulta inteligente simulada |
-| `/traducir [texto]` | Traducción rápida |
-| `clima en [ciudad]` | Reporte meteorológico |
-| `definir [palabra]` | Definición de diccionario |
-| `pokemon [nombre]` | Datos de Pokémon |
-| `github [usuario]` | Perfil de GitHub |
+### 1. Elegí el modo correcto
+
+| Pestaña | Para qué sirve | Ejemplo |
+|---------|----------------|---------|
+| **Web** | Busca en los motores activos y muestra tarjetas inteligentes | `inteligencia artificial` |
+| **Imágenes** | Abre la consulta en Google, Bing, Yandex, DuckDuckGo y Pinterest | `paisajes de montaña` |
+| **IA** | Lleva la pregunta a ChatGPT, Gemini, Perplexity, Claude o DeepSeek | `explicá blockchain` |
+| **Seguridad** | Shodan: puertos y servicios expuestos de una IP o dispositivo (requiere API key) | `8.8.8.8` |
+| **OSINT** | Analiza IP, dominio, email, usuario, hash, URL o teléfono sin API keys | `example.com` |
+| **ECNews** | Dashboard de noticias, clima y prensa LATAM | Botón ECNews |
+
+### 2. Comandos con barra
+
+| Comando | Qué hace |
+|---------|----------|
+| `/ai [pregunta]` | Respuesta simulada local. Para IA real usá la pestaña **IA** |
+| `/clima [ciudad]` | Clima real con Open-Meteo. También funciona `clima en [ciudad]` |
+| `/traducir [texto]` | Traducción simulada local (no envía el texto a ningún servicio) |
+
+> Escribí el comando con un espacio antes del dato: `/clima Madrid`, no `/climaMadrid`.
+
+### 3. Palabras que activan tarjetas en modo Web
+
+| Escribí | Tarjeta |
+|---------|---------|
+| `clima en Madrid` · `/clima Madrid` | Clima actual |
+| `precio bitcoin` · `acciones apple` | Mercados y cripto |
+| `github torvalds` | Perfil de GitHub |
+| `pokemon pikachu` | Pokédex |
+| `definir entropía` · `significado de sesgo` | Diccionario |
+| `pais Japón` | Ficha del país |
+| `receta paella` | Receta |
+| `noticias inteligencia artificial` | Noticias tech |
+| `libro Cien años de soledad` | Libros |
+| `serie Dark` · `canción Bohemian Rhapsody` | TV / música |
+| `spacex` | Último lanzamiento |
+| `perro` | Foto aleatoria |
+| `archivo historia de internet` | Internet Archive |
+| `imagen de gatos` | Búsqueda de imágenes |
+| Una ciudad o país solo | Mapa + clima (OpenStreetMap) |
+| Cualquier entidad corta | Wikipedia + DuckDuckGo |
+
+### 4. OSINT en 10 segundos
+
+1. Abrí la pestaña **OSINT**.
+2. Pegá un dato (`8.8.8.8`, `example.com`, `ana@example.com`, `torvalds`, un hash, una URL o un teléfono).
+3. Mirá las tarjetas: DNS, RDAP, subdominios, puertos, reputación y presencia pública.
+4. Usá los **Google Dorks** y el **directorio de herramientas** para profundizar.
+
+> La guía dentro de la app (menú ☰ → **Guía de Uso**) incluye ejemplos clicables que ejecutan la búsqueda directamente.
 
 ---
 
@@ -170,6 +231,7 @@ Estalingrado-corp-Buscador-/
 ├── index.html          # Marcado HTML (head, layout, modales)
 ├── style.css           # Todos los estilos (estética Aurora Cyber)
 ├── app.js              # Toda la lógica (búsqueda, APIs, widgets)
+├── osint.js            # Modo OSINT (detección de tipo, fuentes públicas, dorks)
 ├── assets/
 │   ├── logo.jpg        # Logo local (sin dependencia de CDN externo)
 │   └── screenshots/    # Capturas numeradas (01.png - 04.png)
@@ -226,6 +288,7 @@ Los accesos del menú desplegable se editan directamente en `index.html`, dentro
 - ✅ 100% local (localStorage)
 - ✅ Sin servidores propios
 - ✅ APIs públicas directas desde el navegador
+- ✅ Modo OSINT sin API keys: solo hashes y consultas públicas, nunca credenciales
 
 ---
 

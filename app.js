@@ -103,6 +103,24 @@ var Utils = {
     validateEmail: (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
     validateUrl: (url) => { try { new URL(url); return true; } catch { return false; } },
     escapeHtml: (unsafe) => unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"),
+    weatherInfo: function(code) {
+        var map = {
+            0: ['fa-sun', 'Despejado'], 1: ['fa-cloud-sun', 'Mayormente despejado'],
+            2: ['fa-cloud-sun', 'Parcialmente nublado'], 3: ['fa-cloud', 'Nublado'],
+            45: ['fa-smog', 'Niebla'], 48: ['fa-smog', 'Niebla con escarcha'],
+            51: ['fa-cloud-rain', 'Llovizna'], 53: ['fa-cloud-rain', 'Llovizna'], 55: ['fa-cloud-rain', 'Llovizna intensa'],
+            56: ['fa-cloud-rain', 'Llovizna helada'], 57: ['fa-cloud-rain', 'Llovizna helada'],
+            61: ['fa-cloud-showers-heavy', 'Lluvia'], 63: ['fa-cloud-showers-heavy', 'Lluvia'], 65: ['fa-cloud-showers-heavy', 'Lluvia intensa'],
+            66: ['fa-cloud-rain', 'Lluvia helada'], 67: ['fa-cloud-rain', 'Lluvia helada'],
+            71: ['fa-snowflake', 'Nieve'], 73: ['fa-snowflake', 'Nieve'], 75: ['fa-snowflake', 'Nieve intensa'],
+            77: ['fa-snowflake', 'Granos de nieve'],
+            80: ['fa-cloud-showers-heavy', 'Chubascos'], 81: ['fa-cloud-showers-heavy', 'Chubascos'], 82: ['fa-cloud-showers-heavy', 'Chubascos fuertes'],
+            85: ['fa-snowflake', 'Chubascos de nieve'], 86: ['fa-snowflake', 'Chubascos de nieve'],
+            95: ['fa-cloud-bolt', 'Tormenta'], 96: ['fa-cloud-bolt', 'Tormenta con granizo'], 99: ['fa-cloud-bolt', 'Tormenta con granizo']
+        };
+        var info = map[code] || ['fa-cloud', 'Condición variable'];
+        return { icon: info[0], desc: info[1] };
+    },
     copyToClipboard: function(text) {
         const textArea = document.createElement("textarea");
         textArea.value = text;
@@ -593,7 +611,7 @@ var SearchManager = {
     performSearch: function() {
         const { queryInput, resultsContainer, resultsDiv } = UI.elements;
         const query = queryInput.value.trim();
-        if (!query && AppState.searchMode !== 'security') return;
+        if (!query && AppState.searchMode !== 'security' && AppState.searchMode !== 'osint') return;
         this._searchId++;
         var currentSearchId = this._searchId;
         // Cortamos los fetches de la búsqueda anterior: sus tarjetas ya no tienen dónde pintarse.
@@ -602,7 +620,7 @@ var SearchManager = {
         
         UI.elements.suggestionsContainer.classList.remove('show'); document.querySelector('.search-wrapper').classList.remove('active');
         
-        if (query.toLowerCase().startsWith('/ai') || query.toLowerCase().startsWith('/clima') || query.toLowerCase().startsWith('/traducir')) {
+        if (query.toLowerCase().startsWith('/ai') || query.toLowerCase().startsWith('/traducir') || /^(\/clima|clima en)\s+/i.test(query)) {
             SearchManager.processSpecialCommands(query); return;
         }
 
@@ -636,6 +654,17 @@ var SearchManager = {
         if (AppState.searchMode === 'security') {
             resultsDiv.appendChild(inlineContainer);
             SearchManager.renderSecurityModeResults(query, inlineContainer);
+            return;
+        }
+
+        // --- MODO OSINT (fuentes públicas, sin API keys) ---
+        if (AppState.searchMode === 'osint') {
+            resultsDiv.appendChild(inlineContainer);
+            if (window.OSINT && typeof window.OSINT.render === 'function') {
+                window.OSINT.render(query, inlineContainer);
+            } else {
+                inlineContainer.innerHTML = '<div class="result"><strong style="color:var(--danger);">Modo OSINT no disponible.</strong><br><span style="font-size:12px;color:var(--text-muted);">No se pudo cargar osint.js.</span></div>';
+            }
             return;
         }
 
@@ -1525,6 +1554,55 @@ var SearchManager = {
             }, 1500);
         } else if (query.startsWith('/traducir ')) {
             resultsDiv.innerHTML = `<div class="result"><strong><i class="fas fa-language"></i> Traducción:</strong><p>Original: ${Utils.escapeHtml(query.substring(10))}</p><p style="color:var(--primary);">[Simulación] Traducción procesada en servidor.</p></div>`;
+        } else if (/^(\/clima|clima en)\s+/i.test(query)) {
+            var city = query.replace(/^\/clima\s+/i, '').replace(/^clima en\s+/i, '').trim();
+            if (!city) {
+                resultsDiv.innerHTML = '<div class="result"><strong style="color:#fcd34d;"><i class="fas fa-cloud-sun"></i> Clima:</strong><p>Escribe una ciudad, por ejemplo <code>/clima Madrid</code> o <code>clima en Buenos Aires</code>.</p></div>';
+                return;
+            }
+            resultsDiv.innerHTML = `<div class="result" style="border-left:4px solid #fcd34d;"><strong style="color:#fcd34d;"><i class="fas fa-cloud-sun"></i> Clima en vivo:</strong><p style="font-size:13px;color:var(--text-muted);">Consultando «${Utils.escapeHtml(city)}»...</p><div class="loading-spinner"></div></div>`;
+            fetchJson('https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(city) + '&count=1&language=es&format=json', 10000)
+                .then(function(g) {
+                    if (!g.results || !g.results.length) throw new Error('notfound');
+                    var place = g.results[0];
+                    return fetchJson('https://api.open-meteo.com/v1/forecast?latitude=' + place.latitude + '&longitude=' + place.longitude + '&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto', 10000)
+                        .then(function(w) { return { place: place, w: w }; });
+                })
+                .then(function(d) {
+                    var cur = d.w.current;
+                    var info = Utils.weatherInfo(cur.weather_code);
+                    var placeName = [d.place.name, d.place.admin1, d.place.country].filter(Boolean).join(', ');
+                    var temp = Math.round(cur.temperature_2m);
+                    var feels = Math.round(cur.apparent_temperature);
+                    resultsDiv.innerHTML = `
+                        <div class="result" style="border-left:4px solid #fcd34d;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:15px; flex-wrap:wrap;">
+                                <div>
+                                    <strong style="color:#fcd34d; font-size:1.1em;"><i class="fas fa-cloud-sun"></i> Clima en vivo</strong>
+                                    <h3 style="margin:4px 0; color:var(--text);">${Utils.escapeHtml(placeName)}</h3>
+                                    <div style="font-size:12px; color:var(--text-muted);">${Utils.escapeHtml(String(d.place.latitude))}, ${Utils.escapeHtml(String(d.place.longitude))} · Zona horaria: ${Utils.escapeHtml(d.w.timezone || 'auto')}</div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <i class="fas ${info.icon}" style="font-size:34px; color:#fcd34d;"></i>
+                                    <div style="font-size:34px; font-weight:600; color:var(--text); line-height:1.1;">${temp}°C</div>
+                                    <div style="font-size:13px; color:var(--text-muted);">${Utils.escapeHtml(info.desc)}</div>
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:14px; font-size:12px; color:var(--text-muted);">
+                                <span><i class="fas fa-temperature-half" style="color:var(--primary);"></i> Sensación: ${feels}°C</span>
+                                <span><i class="fas fa-tint" style="color:var(--primary);"></i> Humedad: ${cur.relative_humidity_2m}%</span>
+                                <span><i class="fas fa-wind" style="color:var(--primary);"></i> Viento: ${cur.wind_speed_10m} km/h</span>
+                            </div>
+                            <div style="font-size:11px; color:var(--text-gray); margin-top:10px;">Datos de Open-Meteo · <a href="https://open-meteo.com/" target="_blank" rel="noopener">open-meteo.com</a></div>
+                        </div>`;
+                })
+                .catch(function(e) {
+                    if (isAbort(e)) return;
+                    var msg = (e && e.message === 'notfound')
+                        ? 'No encontré esa ciudad. Prueba con otro nombre o agrega el país (ej. «Córdoba, Argentina»).'
+                        : 'No se pudo consultar el clima en este momento. Revisa tu conexión e intenta de nuevo.';
+                    resultsDiv.innerHTML = '<div class="result" style="border-left:4px solid #ef4444;"><strong style="color:#fcd34d;"><i class="fas fa-cloud-sun"></i> Clima:</strong><p style="font-size:13px; color:var(--text-muted);">' + msg + '</p></div>';
+                });
         }
     },
 
@@ -1738,7 +1816,19 @@ var App = {
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'k') { e.preventDefault(); UI.elements.queryInput.focus(); }
             if (e.ctrlKey && e.key === 'd') { e.preventDefault(); UI.toggleDashboard(); }
-            if (e.key === 'Escape') { UI.closeAllPanels(); UI.elements.suggestionsContainer.classList.remove('show'); document.querySelector('.search-wrapper').classList.remove('active'); SearchManager._suggestionIndex = -1; }
+            if (e.key === 'Escape') {
+                UI.closeAllPanels();
+                ['help-modal', 'privacy-modal', 'modal-terminal'].forEach(function(id) {
+                    var m = document.getElementById(id);
+                    if (m && m.classList.contains('show')) UI.toggleModal(id);
+                });
+                if (AppState.isRecording && AppState.voiceRecognition) {
+                    try { AppState.voiceRecognition.stop(); } catch (err) { /* ya detenido */ }
+                }
+                UI.elements.suggestionsContainer.classList.remove('show');
+                document.querySelector('.search-wrapper').classList.remove('active');
+                SearchManager._suggestionIndex = -1;
+            }
         });
     },
     startLoader: function() {
@@ -1776,12 +1866,25 @@ window.mostrarPoliticaPrivacidad = () => UI.toggleModal("privacy-modal");
 window.toggleTerminal = () => UI.toggleModal("modal-terminal");
 window.search = () => SearchManager.performSearch();
 
+// Ejemplos clicables de la guía: cierra el modal, carga la consulta y busca.
+window.runHelpExample = function(query, mode) {
+    var input = document.getElementById('query');
+    if (!input) return;
+    input.value = query;
+    var modal = document.getElementById('help-modal');
+    if (modal && modal.classList.contains('show')) UI.toggleModal('help-modal');
+    if (mode) window.setSearchMode(mode);
+    else window.search();
+};
+
 window.setSearchMode = function(mode) {
     AppState.searchMode = mode;
     document.getElementById('tab-web').classList.toggle('active', mode === 'web');
     document.getElementById('tab-images').classList.toggle('active', mode === 'images');
     document.getElementById('tab-ai').classList.toggle('active', mode === 'ai');
     document.getElementById('tab-security').classList.toggle('active', mode === 'security');
+    var osintTab = document.getElementById('tab-osint');
+    if (osintTab) osintTab.classList.toggle('active', mode === 'osint');
 
     const input = document.getElementById('query');
     if (mode === 'images') {
@@ -1790,13 +1893,15 @@ window.setSearchMode = function(mode) {
         input.placeholder = "Pregunta a la IA: escribe tu consulta...";
     } else if (mode === 'security') {
         input.placeholder = "Query de Shodan (ej: webcam, port:554, 8.8.8.8)...";
+    } else if (mode === 'osint') {
+        input.placeholder = "IP, dominio, email, usuario, hash, URL o teléfono...";
     } else {
         input.placeholder = "¿Qué necesitas localizar hoy?";
     }
 
     // Si ya hay algo escrito, re-ejecutamos la búsqueda en el nuevo modo automáticamente
     if (input.value.trim() !== '') window.search();
-    else if (mode === 'security') window.search();
+    else if (mode === 'security' || mode === 'osint') window.search();
 };
 
 window.clearHistory = () => SearchManager.clearHistory();
