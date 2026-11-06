@@ -121,13 +121,13 @@ El menú desplegable del header organiza los accesos en tres secciones:
 
 #### Enlaces actuales
 - Intra-net Web: `https://estalingradocorp.github.io/Intra-net/`
-- EC Market: `https://estalingradocorp.github.io/EstalingradoCorp/market.html`
+- EC Market: `https://estalingradocorp.com.ar/market.html`
 - EC Download: `https://nicotips27.github.io/ec-download/`
 - ECSend: `https://nicotips27.github.io/ECwebSend/`
 - EC Channel: `https://nicotips27.github.io/EC-chanel/`
 - ECnews: `https://nicotips27.github.io/ECnews/`
 - Big-Data: `https://nicotips27.github.io/ec-Intra-net/`
-- Página de la Empresa: `https://estalingradocorp.github.io/EstalingradoCorp/`
+- Página de la Empresa: `https://estalingradocorp.com.ar/`
 
 > **Nota:** Todos los accesos web abren en la misma pestaña (sin `target="_blank"`). "EC OS" fue eliminado del menú.
 
@@ -296,13 +296,13 @@ Los accesos del menú desplegable se editan directamente en `index.html`, dentro
 
 - [EC Escritorio](https://nicotips27.github.io/EC-Escritorio/)
 - [Intra-net Web](https://estalingradocorp.github.io/Intra-net/)
-- [EC Market](https://estalingradocorp.github.io/EstalingradoCorp/market.html)
+- [EC Market](https://estalingradocorp.com.ar/market.html)
 - [EC Download](https://nicotips27.github.io/ec-download/)
 - [ECwebSend](https://nicotips27.github.io/ECwebSend/)
 - [EC Channel](https://nicotips27.github.io/EC-chanel/)
 - [ECnews](https://nicotips27.github.io/ECnews/)
 - [EC OS](https://nicotips27.github.io/EC-OS/)
-- [Página de la Empresa](https://estalingradocorp.github.io/EstalingradoCorp/)
+- [Página de la Empresa](https://estalingradocorp.com.ar/)
 
 ---
 
